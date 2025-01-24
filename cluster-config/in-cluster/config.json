@@ -1,8 +1,0 @@
-{
-    "cluster_name" : "in-cluster",
-    "harness_service" : "canary",
-    "environment" : "dev",
-    "server_address" : "https://kubernetes.default.svc",
-    "image_tag" : "blue",
-    "env" : "dev"
-}
