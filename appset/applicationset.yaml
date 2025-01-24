@@ -23,7 +23,6 @@ spec:
         targetRevision: HEAD
         path: "base"
         kustomize:
-          namePrefix: '{{env}}-'
           images:
           - argoproj/rollouts-demo:{{image_tag}}
       destination:
