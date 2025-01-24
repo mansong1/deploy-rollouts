@@ -2,6 +2,6 @@
   "cluster_name" : "dev",
   "harness_service" : "canary",
   "environment" : "dev",
-  "image_tag" : "blue",
+  "image_tag" : "yellow",
   "server_address" : "https://kubernetes.default.svc"
 }
