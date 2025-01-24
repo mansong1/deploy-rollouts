@@ -1,0 +1,5 @@
+{
+  "image" : "yellow",
+  "harness_service" : "canary",
+  "environment" : "dev"
+}
