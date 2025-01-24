@@ -13,7 +13,7 @@ spec:
     metadata:
       name: '{{cluster_name}}-canary'
       labels:
-        harness.io/envRef: '{{env}}'
+        harness.io/envRef: '{{environment}}'
         harness.io/serviceRef: '{{harness_service}}'
         harness.io/buildRef: '{{image_tag}}'
     spec:
@@ -27,7 +27,7 @@ spec:
           - argoproj/rollouts-demo:{{image_tag}}
       destination:
         server: '{{server_address}}'
-        namespace: 'canary-{{env}}'
+        namespace: 'canary-{{environment}}'
       syncPolicy:
         automated:
           selfHeal: true
