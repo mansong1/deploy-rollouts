@@ -1,0 +1,178 @@
+pipeline:
+  name: Canary Rollouts
+  identifier: Canary_Rollouts
+  projectIdentifier: GitOps
+  orgIdentifier: default
+  tags: {}
+  stages:
+    - stage:
+        name: dev
+        identifier: dev
+        description: ""
+        type: Deployment
+        spec:
+          deploymentType: Kubernetes
+          gitOpsEnabled: true
+          service:
+            serviceRef: canary
+            serviceInputs:
+              serviceDefinition:
+                type: Kubernetes
+                spec:
+                  artifacts:
+                    primary:
+                      primaryArtifactRef: <+input>
+                      sources: <+input>
+          execution:
+            steps:
+              - step:
+                  type: GitOpsUpdateReleaseRepo
+                  name: Update Release Repo
+                  identifier: updateReleaseRepo
+                  timeout: 10m
+                  spec: {}
+              - step:
+                  type: MergePR
+                  name: Merge PR
+                  identifier: mergePR
+                  spec:
+                    deleteSourceBranch: true
+                  timeout: 10m
+              - step:
+                  type: GitOpsFetchLinkedApps
+                  name: Fetch Linked Apps
+                  identifier: fetchLinkedApps
+                  timeout: 10m
+                  spec: {}
+              - step:
+                  type: GitOpsSync
+                  name: Promote20Perc
+                  identifier: GitOpsSync
+                  spec:
+                    prune: false
+                    dryRun: false
+                    applyOnly: false
+                    forceApply: false
+                    applicationsList: []
+                    retryStrategy: {}
+                    retry: false
+                    syncOptions:
+                      skipSchemaValidation: false
+                      autoCreateNamespace: false
+                      pruneResourcesAtLast: false
+                      applyOutOfSyncOnly: false
+                      replaceResources: false
+                      prunePropagationPolicy: foreground
+                    waitTillHealthy: false
+                    failOnTimeout: false
+                  timeout: 10m
+              - parallel:
+                  - step:
+                      type: Http
+                      name: Http
+                      identifier: Http
+                      spec:
+                        url: https://google.com
+                        method: GET
+                        headers: []
+                        inputVariables: []
+                        outputVariables: []
+                      timeout: 10s
+                    contextType: Pipeline
+                  - step:
+                      type: CustomApproval
+                      name: Wait
+                      identifier: CustomApproval_1
+                      spec:
+                        rejectionCriteria:
+                          type: KeyValues
+                          spec:
+                            matchAnyCondition: true
+                            conditions: []
+                        approvalCriteria:
+                          type: KeyValues
+                          spec:
+                            matchAnyCondition: true
+                            conditions:
+                              - key: status
+                                operator: equals
+                                value: Paused
+                        scriptTimeout: 10m
+                        retryInterval: 30s
+                        shell: Bash
+                        onDelegate: true
+                        source:
+                          type: Inline
+                          spec:
+                            script: |
+                              export status=$(kubectl get rollouts canary -n canary-dev -o jsonpath='{.status.phase}')
+                        environmentVariables: []
+                        outputVariables:
+                          - name: status
+                            type: String
+                            value: status
+                      timeout: 1d
+                      when:
+                        stageStatus: Success
+              - step:
+                  type: HarnessApproval
+                  name: Approval
+                  identifier: Approval
+                  spec:
+                    approvalMessage: Please review the following information and approve the pipeline progression
+                    includePipelineExecutionHistory: true
+                    isAutoRejectEnabled: false
+                    approvers:
+                      userGroups:
+                        - account._account_all_users
+                      minimumCount: 1
+                      disallowPipelineExecutor: false
+                    approverInputs: []
+                  timeout: 1d
+              - step:
+                  type: ShellScript
+                  name: Promote40Perc
+                  identifier: Promote40Perc
+                  spec:
+                    shell: Bash
+                    executionTarget: {}
+                    source:
+                      type: Inline
+                      spec:
+                        script: |
+                          kubectl argo rollouts promote canary -n canary-dev
+                    environmentVariables: []
+                    outputVariables: []
+                  timeout: 10m
+              - step:
+                  type: ShellScript
+                  name: PromoteFull
+                  identifier: PromoteFull
+                  spec:
+                    shell: Bash
+                    executionTarget: {}
+                    source:
+                      type: Inline
+                      spec:
+                        script: kubectl argo rollouts promote canary -n canary-dev
+                    environmentVariables: []
+                    outputVariables: []
+                  timeout: 10m
+            rollbackSteps: []
+          environment:
+            environmentRef: dev
+            deployToAll: false
+            gitOpsClusters:
+              - identifier: incluster
+                agentIdentifier: orb
+        tags: {}
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: StageRollback
+        when:
+          pipelineStatus: Success
+        delegateSelectors:
+          - orb
