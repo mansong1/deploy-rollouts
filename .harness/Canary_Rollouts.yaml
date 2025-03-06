@@ -26,6 +26,23 @@ pipeline:
           execution:
             steps:
               - step:
+                  type: UpdateGitOpsApp
+                  name: UpdateGitOpsApp
+                  identifier: UpdateGitOpsApp
+                  spec:
+                    targetRevision: HEAD
+                    kustomize:
+                      images:
+                        - argoproj/rollouts-demo:red
+                      replicas: []
+                      namePrefix: test
+                      nameSuffix: test
+                      namespace: test
+                    applicationName: dev-canary
+                    agentId: orb
+                  timeout: 10m
+                contextType: Pipeline
+              - step:
                   type: GitOpsUpdateReleaseRepo
                   name: Update Release Repo
                   identifier: updateReleaseRepo
